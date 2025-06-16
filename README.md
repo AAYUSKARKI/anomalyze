@@ -1,0 +1,1 @@
+This is a final year project of seventh semester of BSC.CSIT in Tribhuvan University.
