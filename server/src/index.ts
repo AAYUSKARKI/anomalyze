@@ -1,26 +1,17 @@
-import express from 'express';
-import { AppDataSource } from './data-source.ts';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './docs/swagger.ts';
-import routes from './routes/index.ts';
-import dotenv from 'dotenv';
-import 'reflect-metadata';
-dotenv.config();
+import { app, logger } from "@/server";
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+const server = app.listen(process.env.PORT, () => {
+	logger.info(`Server (${process.env.NODE_ENV}) running on port http://${process.env.HOST}:${process.env.PORT}`);
+});
 
-app.use(express.json());
-app.use('/api', routes);
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const onCloseSignal = () => {
+	logger.info("sigint received, shutting down");
+	server.close(() => {
+		logger.info("server closed");
+		process.exit();
+	});
+	setTimeout(() => process.exit(1), 10000).unref(); // Force shutdown after 10s
+};
 
-AppDataSource.initialize()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
-      console.log(`📚 Swagger docs at http://localhost:${PORT}/docs`);
-    });
-  })
-  .catch((err) => {
-    console.error('Error during Data Source initialization', err);
-  });
+process.on("SIGINT", onCloseSignal);
+process.on("SIGTERM", onCloseSignal);
