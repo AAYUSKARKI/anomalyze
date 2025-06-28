@@ -1,12 +1,12 @@
-import { app, logger } from "@/server";
+import { server, logger } from "@/server";
 
-const server = app.listen(process.env.PORT, () => {
+const backendserver = server.listen(process.env.PORT, () => {
 	logger.info(`Server (${process.env.NODE_ENV}) running on port http://${process.env.HOST}:${process.env.PORT}`);
 });
 
 const onCloseSignal = () => {
 	logger.info("sigint received, shutting down");
-	server.close(() => {
+	backendserver.close(() => {
 		logger.info("server closed");
 		process.exit();
 	});
