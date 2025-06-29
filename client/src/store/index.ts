@@ -18,8 +18,14 @@ const userPersistConfig = {
   storage,
 }
 
+const filePersistConfig = {
+  key: 'files',
+  version: 1,
+  storage,
+}
+
 const persistedUserReducer = persistReducer(userPersistConfig, authReducer);
-const persistedFileReducer = persistReducer(userPersistConfig, fileReducer);
+const persistedFileReducer = persistReducer(filePersistConfig, fileReducer);
 
 const rootReducer = combineReducers({
   user: persistedUserReducer,
