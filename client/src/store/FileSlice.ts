@@ -5,11 +5,13 @@ import type{ CsvFile } from '../types/CsvFile';
 interface FileState {
   files: CsvFile[];
   selectedFile: CsvFile | null;
+  selectedFeatures: string[];
 }
 
 const initialState: FileState = {
   files: [],
   selectedFile: null,
+  selectedFeatures: [],
 };
 
 const fileSlice = createSlice({
@@ -34,8 +36,11 @@ const fileSlice = createSlice({
     setSelectedFile: (state, action: PayloadAction<CsvFile | null>) => {
       state.selectedFile = action.payload;
     },
+    setSelectedFeatures: (state, action: PayloadAction<string[]>) => {
+      state.selectedFeatures = action.payload;
+    },
   },
 });
 
-export const { addFile, removeFile, setSelectedFile } = fileSlice.actions;
+export const { addFile, removeFile, setSelectedFile, updateFile, setSelectedFeatures } = fileSlice.actions;
 export default fileSlice.reducer;
