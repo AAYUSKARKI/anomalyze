@@ -14,11 +14,11 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: 'Data Ingestion', path: '/dashboard' },
-  { name: 'Multichannel View', path: '/multichannel' },
-  { name: 'Model Training', path: '/model-training' },
-  { name: 'Analytics', path: '/analytics', icon: <TrendingUp size={16} /> },
-  { name: 'Alerts', path: '/alerts' },
-  { name: 'FMEA', path: '/fmea' },
+  { name: 'Multichannel View', path: '/dashboard/multichannel' },
+  { name: 'Model Training', path: '/dashboard/model-training' },
+  { name: 'Analytics', path: '/dashboard/analytics', icon: <TrendingUp size={16} /> },
+  { name: 'Alerts', path: '/dashboard/alerts' },
+  { name: 'FMEA', path: '/dashboard/fmea' },
 ];
 
 const NavBar: React.FC = () => {
