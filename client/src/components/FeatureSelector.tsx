@@ -11,6 +11,8 @@ const FeatureSelector: React.FC<FeatureSelectorProps> = ({
   selectedFeatures,
   onChange,
 }) => {
+  console.log(features);
+  console.log(selectedFeatures);
   const handleToggleFeature = (feature: string) => {
     const isSelected = selectedFeatures.includes(feature);
     let newSelected: string[];

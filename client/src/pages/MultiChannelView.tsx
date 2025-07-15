@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import PageContainer from '../components/PageContainer';
-import ChartContainer from '../components/ChartContainer';
-import { setSelectedFeatures } from '../store/FileSlice';
 import { useSelector, useDispatch } from 'react-redux';
-import type{ RootState, AppDispatch } from '../store';
-import { Link } from 'react-router-dom';
+import { setSelectedFeatures } from '../store/FileSlice';
+import type { RootState, AppDispatch } from '../store';
 import FeatureSelector from '../components/FeatureSelector';
+import ChartContainer from '../components/ChartContainer';
+import { Link, useNavigate } from 'react-router-dom';
+
 
 const generateColors = (count: number) => {
   const colors = [
@@ -20,78 +21,77 @@ const generateColors = (count: number) => {
   return Array.from({ length: count }, (_, i) => colors[i % colors.length]);
 };
 
-const MultiChannelView: React.FC = () => {
+const MultichannelView: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const { selectedFile,selectedFeatures } = useSelector((state: RootState) => state.files);
+  const {selectedFile,selectedFeatures} = useSelector((state: RootState) => state.files);
   const [chartData, setChartData] = useState<any>(null);
+  console.log(selectedFile?.data)
+  useEffect(() => {
+    if (selectedFile?.data && selectedFeatures.length > 0) {
+      const totalPoints = selectedFile.data.length;
+      const pointsToShow = Math.min(100, totalPoints);
+      const step = Math.max(1, Math.floor(totalPoints / pointsToShow));
 
-useEffect(() => {
-  if (selectedFile?.data && selectedFeatures.length > 0) {
-    const totalPoints = selectedFile.data.length;
-    const pointsToShow = Math.min(100, totalPoints);
-    const step = Math.max(1, Math.floor(totalPoints / pointsToShow));
-
-    const sampledData = selectedFile.data.filter((_, index) => index % step === 0);
-
-    const labels = sampledData.map((row: any, index: number) => {
-      if (row.date) {
-        const date = new Date(row.date);
-        return isNaN(date.getTime()) ? `Point ${index * step + 1}` : date.toLocaleDateString();
-      }
-      return `Point ${index * step + 1}`;
-    });
-
-    const colors = generateColors(selectedFeatures.length);
-
-    const datasets = selectedFeatures.map((feature, i) => {
-      const isDateField = feature.toLowerCase().includes('date');
-
-      const rawValues = sampledData.map((row: any) => {
-        const val = row[feature];
-        if (isDateField) {
-          const dateVal = new Date(val).getTime();
-          return isNaN(dateVal) ? 0 : dateVal;
+      // Create sampled data points
+      const sampledData = selectedFile.data.filter((_, index) => index % step === 0);
+      
+      // Create labels (use row index or timestamp if available)
+      const labels = sampledData.map((row: any, index) => {
+        if (row.date) {
+          const date = new Date(row.date);
+          return date.toLocaleDateString();
         }
-        const numVal = Number(val);
-        return isNaN(numVal) ? 0 : numVal;
+        return `Point ${index * step + 1}`;
       });
 
-      const min = Math.min(...rawValues);
-      const max = Math.max(...rawValues);
-      const range = max - min;
+      // Create normalized datasets for each selected feature
+      const datasets = selectedFeatures.map((feature, index) => {
+        const values = sampledData.map((row: any) => row[feature] || 0);
+        
+        // Calculate min and max for normalization
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min;
+        
+        // Normalize values to a 0-100 scale for better comparison
+        const normalizedData = values.map(value => {
+          if (range === 0) return 0;
+          return ((value - min) / range) * 100;
+        });
 
-      const normalizedData = rawValues.map(value => {
-        if (range === 0) return 0;
-        return ((value - min) / range) * 100;
+        const colors = generateColors(selectedFeatures.length);
+        return {
+          label: `${feature} (${min.toFixed(2)} - ${max.toFixed(2)})`,
+          data: normalizedData,
+          borderColor: colors[index],
+          backgroundColor: `${colors[index]}33`,
+          borderWidth: 2,
+          pointRadius: 1,
+          tension: 0.3,
+          fill: false
+        };
       });
 
-      // 🔥 Show human-readable legend for dates
-      const readableMin = isDateField ? new Date(min).toLocaleDateString() : min.toFixed(2);
-      const readableMax = isDateField ? new Date(max).toLocaleDateString() : max.toFixed(2);
+      setChartData({ labels, datasets });
+    } else {
+      setChartData(null);
+    }
+  }, [selectedFile, selectedFeatures]);
 
-      return {
-        label: `${feature} (${readableMin} - ${readableMax})`,
-        data: normalizedData,
-        borderColor: colors[i],
-        backgroundColor: `${colors[i]}33`,
-        borderWidth: 2,
-        pointRadius: 1,
-        tension: 0.3,
-        fill: false,
-      };
-    });
-
-    setChartData({ labels, datasets });
-  } else {
-    setChartData(null);
-  }
-}, [selectedFile, selectedFeatures]);
-
-
-
-   const handleFeatureChange = (features: string[]) => {
+  const handleFeatureChange = (features: string[]) => {
     dispatch(setSelectedFeatures(features));
   };
+
+  useEffect(() => {
+    if (selectedFile?.isLive && selectedFile?.data && selectedFile.data.length >= 10) {
+      const timeout = setTimeout(() => {
+        navigate("/dashboard/model-training");
+      }, 5000); // wait 5 seconds so user can briefly see multichannel chart
+
+      return () => clearTimeout(timeout);
+    }
+  }, [selectedFile, navigate]);
 
   return (
     <PageContainer
@@ -134,7 +134,7 @@ useEffect(() => {
                     <p>* Original ranges shown in legend</p>
                   </div>
                   <span className="text-sm text-gray-500">
-                    Showing {Math.min(100, selectedFile?.data?.length || 0)} data points
+                    Showing {Math.min(100, selectedFile?.data?.length || 0 )} data points
                   </span>
                 </div>
                 <ChartContainer
@@ -159,4 +159,4 @@ useEffect(() => {
   );
 };
 
-export default MultiChannelView;
+export default MultichannelView;

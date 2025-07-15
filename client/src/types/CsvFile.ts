@@ -6,4 +6,5 @@ export interface CsvFile {
   file?: File;
   features?: string[];
   data?: any[];
+  isLive?: boolean;
 }

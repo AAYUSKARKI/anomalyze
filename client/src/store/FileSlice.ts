@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type{  PayloadAction } from '@reduxjs/toolkit';
-import type{ CsvFile } from '../types/CsvFile';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { CsvFile } from '../types/CsvFile';
 
 interface FileState {
   files: CsvFile[];
@@ -27,8 +27,8 @@ const fileSlice = createSlice({
         state.selectedFile = null;
       }
     },
-    updateFile(state, { payload }: PayloadAction<CsvFile>) {
-      state.files = state.files.map(file => file.id === payload.id ? payload : file);
+    updateFile: (state, { payload }: PayloadAction<CsvFile>) => {
+      state.files = state.files.map(file => (file.id === payload.id ? payload : file));
       if (state.selectedFile?.id === payload.id) {
         state.selectedFile = payload;
       }
@@ -42,5 +42,6 @@ const fileSlice = createSlice({
   },
 });
 
-export const { addFile, removeFile, setSelectedFile, updateFile, setSelectedFeatures } = fileSlice.actions;
+export const { addFile, removeFile, updateFile, setSelectedFile, setSelectedFeatures } =
+  fileSlice.actions;
 export default fileSlice.reducer;

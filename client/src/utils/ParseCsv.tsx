@@ -6,11 +6,13 @@ export const parseCSV = (content: string) => {
     if (header.includes('usage') && header.includes('kwh')) return 'usage_kwh';
     if (header.includes('co2') && header.includes('tco2')) return 'co2_tco2';
     if (header.includes('power') && header.includes('factor')) return 'power_factor';
-    if (header.includes('date') || header.includes('time')) return 'date';
+    if (header.includes('date') || header.includes('time')) return 'timestamp';
     return header;
   });
   
-  const data = lines.slice(1)
+  //take only 300 rows
+  const datalines = lines.slice(1).filter(line => line.trim()).slice(0, 300);
+  const data = datalines.slice(1)
     .filter(line => line.trim())
     .map(line => {
       const values = line.split(',').map(value => value.trim());

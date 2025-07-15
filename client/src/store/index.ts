@@ -1,6 +1,9 @@
 import { configureStore as ConfigureStore, combineReducers } from "@reduxjs/toolkit"
 import authReducer from "./AuthSlice"
 import fileReducer from "./FileSlice"
+import modelReducer from "./ModelSlice"
+import endpointReducer from "./EndPointSlice"
+import anomalyReducer from "./AnomalySlice"
 import {
   persistReducer,
   FLUSH,
@@ -24,12 +27,29 @@ const filePersistConfig = {
   storage,
 }
 
+const modelPersistConfig = {
+  key: 'model',
+  version: 1,
+  storage,
+}
+
+const anomalyPersistConfig = {
+  key: 'anomaly',
+  version: 1,
+  storage,
+}
+
 const persistedUserReducer = persistReducer(userPersistConfig, authReducer);
 const persistedFileReducer = persistReducer(filePersistConfig, fileReducer);
+const persistedModelReducer = persistReducer(modelPersistConfig, modelReducer);
+const persistedAnomalyReducer = persistReducer(anomalyPersistConfig, anomalyReducer);
 
 const rootReducer = combineReducers({
   user: persistedUserReducer,
-  files: persistedFileReducer
+  files: persistedFileReducer,
+  model: persistedModelReducer,
+  anomaly: persistedAnomalyReducer,
+  endpoint: endpointReducer
 });
 
 const store = ConfigureStore({

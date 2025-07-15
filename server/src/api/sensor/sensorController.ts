@@ -69,7 +69,7 @@ export const setupSocket = (io: any) => {
 
       const line = `${adjustedRow.timestamp},${row.usage_kwh},${row.co2_tco2},${row.power_factor},${row.voltage},${row.current},${row.temperature},${row.humidity},${row.vibration}`;
       socket.emit('sensor_data', line);
-      console.log(`Emitting line: ${line}`);
+      // console.log(`Emitting line: ${line}`);
       currentIndex++;
 
       setTimeout(emitLines, emitInterval);

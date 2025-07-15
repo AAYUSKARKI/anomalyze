@@ -11,13 +11,14 @@ import requestLogger from "@/common/middleware/requestLogger";
 import http from "http";
 import { Server } from "socket.io"
 import { setupSocket } from "./api/sensor/sensorController";
+import { anomalyRouter } from "./api/anomaly/anomalyRouter";
 
 const logger = pino({ name: "server start" });
 const app: Express = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.CORS_ORIGIN,
+        origin: "http://localhost:5173",
         credentials: true
     }
 })
@@ -27,7 +28,7 @@ app.set("trust proxy", true);
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(helmet());
 app.use(rateLimiter);
 
@@ -37,6 +38,7 @@ app.use(requestLogger);
 // Routes
 app.use("/health-check", healthCheckRouter);
 app.use("/users", userRouter);
+app.use("/anomaly", anomalyRouter);
 
 // Swagger UI
 app.use(openAPIRouter);

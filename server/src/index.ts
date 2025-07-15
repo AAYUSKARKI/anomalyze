@@ -1,4 +1,7 @@
 import { server, logger } from "@/server";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const backendserver = server.listen(process.env.PORT, () => {
 	logger.info(`Server (${process.env.NODE_ENV}) running on port http://${process.env.HOST}:${process.env.PORT}`);
