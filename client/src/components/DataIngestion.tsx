@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { FaSpinner } from 'react-icons/fa';
 import { FileText, PlugZap, Plug, CheckCircle, Wifi, Activity } from 'lucide-react';
-
+import { setSocketConnected } from '../store/SocketSlice';
 import { addFile, removeFile, setSelectedFile, setSelectedFeatures } from '../store/FileSlice';
 import { initSocket, getSocket, closeSocket } from '../utils/socketManager';
 import type { RootState, AppDispatch } from '../store';
@@ -85,11 +85,13 @@ const DataIngestion: React.FC = () => {
           opacity: [0.7, 1, 0.7],
           transition: { repeat: Infinity, duration: 1.5 },
         });
+        dispatch(setSocketConnected(true));
         toast.success('Connected to sensor endpoint!', { position: 'top-center' });
       },
       () => {
         setIsConnected(false);
         setConnecting(false);
+        dispatch(setSocketConnected(false));
         toast.error('Connection failed. Please check the endpoint.', { position: 'top-center' });
       }
     );
@@ -104,14 +106,14 @@ const DataIngestion: React.FC = () => {
     }, 15000);
   }, [sensorEndpoint]);
 
-  useEffect(() => {
-  if (
-    selectedFile?.id === 'live-stream' && selectedFile.data &&
-    selectedFile.data.length === 10
-  ) {
-    navigate('/dashboard/multichannel');
-  }
-}, [selectedFile, navigate]);
+//   useEffect(() => {
+//   if (
+//     selectedFile?.id === 'live-stream' && selectedFile.data &&
+//     selectedFile.data.length === 10
+//   ) {
+//     navigate('/dashboard/multichannel');
+//   }
+// }, [selectedFile, navigate]);
 
 
   useEffect(() => {

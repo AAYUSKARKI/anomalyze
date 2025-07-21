@@ -31,22 +31,19 @@ def train():
         if not file_id or not isinstance(file_id, str):
             return jsonify({'error': 'Invalid or missing file ID'}), 400
 
-        # Parse CSV content
         data_points = parse_csv(csv_content)
         if not data_points:
             return jsonify({'error': 'No valid data points found in CSV'}), 400
 
         anomalies = detect_anomalies(data_points)
-
         return jsonify(anomalies), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 def parse_csv(csv_content):
-    # Parse CSV content into a DataFrame
     df = pd.read_csv(StringIO(csv_content))
-    df.columns = df.columns.str.strip().str.lower()  # Normalize column names
+    df.columns = df.columns.str.strip().str.lower()
     return df.to_dict(orient='records')
 
 def analyze_metric(value, mean, std):
@@ -146,6 +143,7 @@ def generate_fmea_diagnosis(analyses):
     if analyses['power_factor']['isAnomaly']:
         severity_text = analyses['power_factor']['severity'].upper()
         value = analyses['power_factor']['value']
+        deviation = abs(analyses['power_factor']['percentageDeviation'])
         
         if value < 0.85:
             causes.append(f"{severity_text}: Low power factor ({value:.2f})")
@@ -174,6 +172,13 @@ def generate_fmea_diagnosis(analyses):
                 'Review capacitor bank sizing',
                 'Monitor leading power factor'
             ])
+        else:
+            causes.append(f"{severity_text}: Power factor deviation {deviation:.1f}% from normal ({value:.2f})")
+            recommendations.extend([
+                'Monitor power factor trends',
+                'Check system stability',
+                'Review power factor correction settings'
+            ])
 
     return f"CAUSES:\n{'\n'.join(causes)}\n\nRECOMMENDATIONS:\n{'\n'.join(['• ' + r for r in recommendations])}"
 
@@ -181,14 +186,12 @@ def detect_anomalies(data):
     metrics = ['usage_kwh', 'co2_tco2', 'power_factor']
     df = pd.DataFrame(data)
 
-    # Calculate statistics for each metric
     stats = {}
     for metric in metrics:
         mean = df[metric].mean()
         std = df[metric].std()
         stats[metric] = {'mean': mean, 'std': std}
 
-    # Detect and analyze anomalies
     results = []
     for index, point in df.iterrows():
         analyses = {
@@ -198,19 +201,19 @@ def detect_anomalies(data):
         }
 
         if any(a['isAnomaly'] for a in analyses.values()):
-            alert_level = max(analyses[metric]['severity'] for metric in analyses)
             diagnosis = generate_fmea_diagnosis(analyses)
-            anomaly_types = ', '.join(f"{analyses[metric]['severity'].upper()} {metric}" for metric in analyses if analyses[metric]['isAnomaly'])
-
-            results.append({
-                'timestamp': point['timestamp'],  # Changed from 'date' to 'timestamp'
-                'Usage_kWh': point['usage_kwh'],
-                'CO2(tCO2)': point['co2_tco2'],
-                'Lagging_Current_Power_Factor': point['power_factor'],
-                'Anomaly_Label': f'Anomaly in: {anomaly_types}',
-                'FMEA_Diagnosis': diagnosis,
-                'Alert_Level': alert_level
-            })
+            if diagnosis.strip() != "CAUSES:\n\nRECOMMENDATIONS:\n":
+                alert_level = max(analyses[metric]['severity'] for metric in analyses if analyses[metric]['isAnomaly'])
+                anomaly_types = ', '.join(f"{analyses[metric]['severity'].upper()} {metric}" for metric in analyses if analyses[metric]['isAnomaly'])
+                results.append({
+                    'timestamp': point['timestamp'],
+                    'Usage_kWh': point['usage_kwh'],
+                    'CO2(tCO2)': point['co2_tco2'],
+                    'Lagging_Current_Power_Factor': point['power_factor'],
+                    'Anomaly_Label': f'Anomaly in: {anomaly_types}',
+                    'FMEA_Diagnosis': diagnosis,
+                    'Alert_Level': alert_level
+                })
 
     return results
 
@@ -218,7 +221,6 @@ def predict_next_value(historical_data, days):
     predictions = []
     n = len(historical_data)
     
-    # Calculate trend using simple linear regression
     sum_x = sum_y = sum_xy = sum_x2 = 0
     for i, y in enumerate(historical_data):
         sum_x += i
@@ -229,7 +231,6 @@ def predict_next_value(historical_data, days):
     slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x) if (n * sum_x2 - sum_x * sum_x) != 0 else 0
     intercept = (sum_y - slope * sum_x) / n if n > 0 else 0
     
-    # Calculate seasonality (weekly)
     season_length = 7
     seasonal_factors = [0] * season_length
     season_counts = [0] * season_length
@@ -243,7 +244,6 @@ def predict_next_value(historical_data, days):
     for i in range(season_length):
         seasonal_factors[i] = seasonal_factors[i] / season_counts[i] if season_counts[i] > 0 else 1
     
-    # Generate predictions with random variations
     for i in range(days):
         trend = slope * (n + i) + intercept
         seasonal = seasonal_factors[i % season_length]
@@ -282,11 +282,9 @@ def predict():
         if not days or not isinstance(days, int):
             raise ValueError('Invalid number of days')
 
-        # Get the last date from historical data
         last_date = historical_data[-1]['date']
         future_dates = generate_future_dates(last_date, days)
 
-        # Predict each metric
         usage_predictions = predict_next_value(
             [d['usage_kwh'] for d in historical_data], days
         )
@@ -297,13 +295,12 @@ def predict():
             [d['power_factor'] for d in historical_data], days
         )
 
-        # Combine predictions
         predictions = [
             {
                 'date': date,
-                'usage_kwh': max(0, usage_pred),  # Ensure non-negative
+                'usage_kwh': max(0, usage_pred),
                 'co2_tco2': max(0, co2_pred),
-                'power_factor': min(1, max(0, pf_pred))  # Ensure between 0 and 1
+                'power_factor': min(1, max(0, pf_pred))
             }
             for date, usage_pred, co2_pred, pf_pred in zip(future_dates, usage_predictions, co2_predictions, pf_predictions)
         ]

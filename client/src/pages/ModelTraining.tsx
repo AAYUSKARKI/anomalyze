@@ -143,7 +143,7 @@ const handleTrainModel = async () => {
     dispatch(setAnomalyData(anomalies));
     setTrainingStatus('success');
     setProgress(100);
-    exportAnomaliesAsExcel(anomalies);
+    // exportAnomaliesAsExcel(anomalies);
     exportAnomaliesAsPDF(anomalies);
 
     if(anomalies.some(anomaly => anomaly.Alert_Level === "normal")) {
@@ -177,12 +177,12 @@ useEffect(() => {
   }
 })
 
-//auto train model
-useEffect(()=>{
-  if(selectedFile?.isLive && selectedModel && selectedFile.data && selectedFile.data.length > 10) {
-    handleTrainModel();
-  }
-},[selectedFile, selectedModel])
+// //auto train model
+// useEffect(()=>{
+//   if(selectedFile?.isLive && selectedModel && selectedFile.data && selectedFile.data.length > 10) {
+//     handleTrainModel();
+//   }
+// },[selectedModel])
 
 return (
     <PageContainer

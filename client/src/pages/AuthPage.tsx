@@ -38,6 +38,7 @@ export default function AuthPage() {
       } else {
         await api.post("/users/register", formData);
         toast.success("Registration successful");
+        setIsLogin(true);
       }
     } catch (error) {
       if (error instanceof Error) {

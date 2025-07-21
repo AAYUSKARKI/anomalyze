@@ -3,10 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getSocket } from '../utils/socketManager';
 import { setSelectedFile } from '../store/FileSlice';
 import type { CsvFile } from '../types/CsvFile';
+import type { RootState } from '../store';
 
 const defaultHeaders = ['timestamp', 'usage_kwh', 'co2_tco2', 'power_factor', 'voltage', 'current', 'temperature', 'humidity', 'vibration'];
 
 const LiveSocketListener = () => {
+  const { isSocketConnected} = useSelector((state: RootState) => state.socket);
   const selectedFile = useSelector((state: any) => state.files.selectedFile);
   console.log("live socket ..................")
   const dispatch = useDispatch();
@@ -14,6 +16,7 @@ const LiveSocketListener = () => {
 
   // Listen to sensor data
   useEffect(() => {
+    if(!isSocketConnected) return
     const socket = getSocket();
     console.log(socket,"live socket inside useEffect..................")
     if (!socket) return;
@@ -30,7 +33,7 @@ const LiveSocketListener = () => {
     return () => {
       socket.off('sensor_data', handleSensorData);
     };
-  }, []);
+  }, [isSocketConnected]);
 
   // Dispatch after rows are updated
   useEffect(() => {

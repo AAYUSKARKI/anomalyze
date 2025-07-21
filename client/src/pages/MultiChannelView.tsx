@@ -83,15 +83,15 @@ const MultichannelView: React.FC = () => {
     dispatch(setSelectedFeatures(features));
   };
 
-  useEffect(() => {
-    if (selectedFile?.isLive && selectedFile?.data && selectedFile.data.length >= 10) {
-      const timeout = setTimeout(() => {
-        navigate("/dashboard/model-training");
-      }, 5000); // wait 5 seconds so user can briefly see multichannel chart
+  // useEffect(() => {
+  //   if (selectedFile?.isLive && selectedFile?.data && selectedFile.data.length >= 10) {
+  //     const timeout = setTimeout(() => {
+  //       navigate("/dashboard/model-training");
+  //     }, 5000); // wait 5 seconds so user can briefly see multichannel chart
 
-      return () => clearTimeout(timeout);
-    }
-  }, [selectedFile, navigate]);
+  //     return () => clearTimeout(timeout);
+  //   }
+  // }, [selectedFile, navigate]);
 
   return (
     <PageContainer

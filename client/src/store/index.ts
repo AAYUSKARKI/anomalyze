@@ -4,6 +4,7 @@ import fileReducer from "./FileSlice"
 import modelReducer from "./ModelSlice"
 import endpointReducer from "./EndPointSlice"
 import anomalyReducer from "./AnomalySlice"
+import socketReducer from "./SocketSlice"
 import {
   persistReducer,
   FLUSH,
@@ -49,7 +50,8 @@ const rootReducer = combineReducers({
   files: persistedFileReducer,
   model: persistedModelReducer,
   anomaly: persistedAnomalyReducer,
-  endpoint: endpointReducer
+  endpoint: endpointReducer,
+  socket: socketReducer
 });
 
 const store = ConfigureStore({
