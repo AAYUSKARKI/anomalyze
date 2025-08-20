@@ -4,6 +4,9 @@ from flask_cors import CORS
 import pandas as pd
 from io import StringIO
 from datetime import datetime, timedelta
+from src.Models.isolation import train_and_detect_anomalies_from_df as isolation_model
+from src.Models.knn import train_and_detect_anomalies_from_df as knn_model
+from src.Models.pca import train_and_detect_anomalies_from_df as pca_model
 import traceback
 
 app = Flask(__name__)
@@ -31,11 +34,20 @@ def train():
         if not file_id or not isinstance(file_id, str):
             return jsonify({'error': 'Invalid or missing file ID'}), 400
 
-        data_points = parse_csv(csv_content)
-        if not data_points:
-            return jsonify({'error': 'No valid data points found in CSV'}), 400
+        # Parse CSV to DataFrame
+        df = pd.read_csv(StringIO(csv_content))
+        df.columns = df.columns.str.strip().str.lower()
 
-        anomalies = detect_anomalies(data_points)
+        # Run selected model
+        if model_type == 'isolation-forest':
+            anomalies = isolation_model(df)
+        elif model_type == 'knn':
+            anomalies = knn_model(df)
+        elif model_type == 'pca':
+            anomalies = pca_model(df)
+        else:
+            return jsonify({'error': 'Unsupported model type'}), 400
+
         return jsonify(anomalies), 200
 
     except Exception as e:
@@ -355,5 +367,33 @@ def predict():
             'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
             'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
         }
+    
+#     @app.route('/train', methods=['POST', 'OPTIONS'])
+# def train():
+#     if request.method == 'OPTIONS':
+#         return ('', 200)
+
+#     try:
+#         data = request.json
+#         csv_content = data.get('csvContent')
+#         model_type = data.get('modelType')
+#         file_id = data.get('fileId')
+
+#         if not csv_content or not isinstance(csv_content, str):
+#             return jsonify({'error': 'Invalid or missing CSV content'}), 400
+#         if not model_type or not isinstance(model_type, str):
+#             return jsonify({'error': 'Invalid or missing model type'}), 400
+#         if not file_id or not isinstance(file_id, str):
+#             return jsonify({'error': 'Invalid or missing file ID'}), 400
+
+#         data_points = parse_csv(csv_content)
+#         if not data_points:
+#             return jsonify({'error': 'No valid data points found in CSV'}), 400
+
+#         anomalies = detect_anomalies(data_points)
+#         return jsonify(anomalies), 200
+
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
 if __name__ == '__main__':
     app.run(debug=True)

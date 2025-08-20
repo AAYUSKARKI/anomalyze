@@ -24,13 +24,14 @@ const ModelTraining = () => {
     const { selectedFile} = useSelector((state: RootState) => state.files);
     const { isSocketConnected} = useSelector((state: RootState) => state.socket);
     const dispatch = useDispatch<AppDispatch>();
-
+    console.log(selectedFile,"selected file")
+    console.log("selected model",selectedModel)
     const [trainingStatus, setTrainingStatus] = useState<
         'idle' | 'training' | 'success' | 'error'
     >('idle');
     const [progress, setProgress] = useState(0);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
+  console.log("training status",trainingStatus)
     const handleFileSelect = (file: CsvFile) => {
     dispatch(setSelectedFile(file));
     setTrainingStatus('idle');
@@ -241,7 +242,7 @@ return (
                   <AlertCircle size={20} className="text-error-500" />
                 )}
                 <button 
-                  className="px-4 py-2 text-sm font-medium text-black cursor-pointer bg-primary-600 rounded-md hover:bg-primary-700 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-medium text-black  cursor-pointer bg-primary-600 rounded-md hover:bg-primary-700 transition-colors flex items-center gap-2"
                   onClick={handleTrainModel}
                   disabled={!selectedFile || !selectedModel || trainingStatus === 'training'}
                 >

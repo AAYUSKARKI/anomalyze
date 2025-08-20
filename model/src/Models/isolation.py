@@ -1,163 +1,217 @@
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.preprocessing import RobustScaler
 from sklearn.covariance import EllipticEnvelope
-import json
-import sys
 from datetime import datetime
 
-def calculate_feature_importance(model, X):
-    """Calculate feature importance scores based on isolation paths"""
-    n_samples = X.shape[0]
-    n_features = X.shape[1]
-    feature_scores = np.zeros(n_features)
-    
-    for estimator in model.estimators_:
-        for tree in estimator.estimators_:
-            leaves_index = tree.apply(X)
-            for leaf in np.unique(leaves_index):
-                leaf_samples = X[leaves_index == leaf]
-                if len(leaf_samples) > 1:
-                    feature_scores += np.var(leaf_samples, axis=0)
-    
-    return feature_scores / len(model.estimators_)
+# ---------------------------
+# Generate FMEA Diagnosis
+# ---------------------------
+def generate_fmea_diagnosis(analyses):
+    causes = []
+    recommendations = []
 
-def get_anomaly_details(row, feature_scores, means, stds, thresholds):
-    """Get detailed anomaly information for a data point"""
-    deviations = {}
-    primary_issue = None
-    max_deviation = 0
-    
-    features = ['usage_kwh', 'co2_tco2', 'power_factor']
-    for feature, score, mean, std, threshold in zip(features, feature_scores, means, stds, thresholds):
-        value = row[feature]
-        z_score = abs((value - mean) / std)
-        deviation = (value - mean) / mean * 100 if mean != 0 else float('inf')
+    # Energy consumption analysis
+    if analyses['usage_kwh']['isAnomaly']:
+        severity_text = analyses['usage_kwh']['severity'].upper()
+        deviation = abs(analyses['usage_kwh']['percentageDeviation'])
         
-        if z_score > threshold:
-            deviations[feature] = {
-                'z_score': z_score,
-                'deviation': deviation,
-                'direction': 'high' if value > mean else 'low'
-            }
-            if score * z_score > max_deviation:
-                max_deviation = score * z_score
-                primary_issue = feature
-    
-    return deviations, primary_issue, max_deviation
+        if analyses['usage_kwh']['direction'] == 'high':
+            causes.append(f"{severity_text}: Energy consumption {deviation:.1f}% above normal")
+            if analyses['usage_kwh']['severity'] == 'critical':
+                recommendations.extend([
+                    'Immediate inspection of high-energy equipment',
+                    'Check for system overload conditions',
+                    'Verify emergency protocols'
+                ])
+            elif analyses['usage_kwh']['severity'] == 'moderate':
+                recommendations.extend([
+                    'Schedule equipment maintenance',
+                    'Review operational efficiency',
+                    'Check for unauthorized usage'
+                ])
+            else:
+                recommendations.extend([
+                    'Monitor equipment performance',
+                    'Review energy usage patterns',
+                    'Consider optimization opportunities'
+                ])
+        else:
+            causes.append(f"{severity_text}: Energy consumption {deviation:.1f}% below normal")
+            recommendations.extend([
+                'Verify equipment operation',
+                'Check for measurement errors',
+                'Review production schedules'
+            ])
 
-def train_and_detect_anomalies(csv_path):
+    # CO2 emissions analysis
+    if analyses['co2_tco2']['isAnomaly']:
+        severity_text = analyses['co2_tco2']['severity'].upper()
+        deviation = abs(analyses['co2_tco2']['percentageDeviation'])
+        
+        if analyses['co2_tco2']['direction'] == 'high':
+            causes.append(f"{severity_text}: CO2 emissions {deviation:.1f}% above normal")
+            if analyses['co2_tco2']['severity'] == 'critical':
+                recommendations.extend([
+                    'Immediate emission control system check',
+                    'Verify combustion efficiency',
+                    'Emergency protocol review'
+                ])
+            elif analyses['co2_tco2']['severity'] == 'moderate':
+                recommendations.extend([
+                    'Schedule emission system maintenance',
+                    'Check fuel quality',
+                    'Review operational parameters'
+                ])
+            else:
+                recommendations.extend([
+                    'Monitor emission trends',
+                    'Regular system checks',
+                    'Consider efficiency improvements'
+                ])
+        else:
+            causes.append(f"{severity_text}: CO2 emissions {deviation:.1f}% below normal")
+            recommendations.extend([
+                'Verify sensor calibration',
+                'Check production levels',
+                'Review system efficiency'
+            ])
+
+    # Power factor analysis
+    if analyses['power_factor']['isAnomaly']:
+        severity_text = analyses['power_factor']['severity'].upper()
+        value = analyses['power_factor']['value']
+        deviation = abs(analyses['power_factor']['percentageDeviation'])
+        
+        if value < 0.85:
+            causes.append(f"{severity_text}: Low power factor ({value:.2f})")
+            if analyses['power_factor']['severity'] == 'critical':
+                recommendations.extend([
+                    'Immediate capacitor bank inspection',
+                    'Check for equipment malfunction',
+                    'Review reactive power compensation'
+                ])
+            elif analyses['power_factor']['severity'] == 'moderate':
+                recommendations.extend([
+                    'Schedule power factor correction',
+                    'Monitor reactive power',
+                    'Check motor loads'
+                ])
+            else:
+                recommendations.extend([
+                    'Regular power factor monitoring',
+                    'Consider system optimization',
+                    'Plan preventive maintenance'
+                ])
+        elif value > 0.98:
+            causes.append(f"{severity_text}: Power factor over-compensation ({value:.2f})")
+            recommendations.extend([
+                'Adjust compensation settings',
+                'Review capacitor bank sizing',
+                'Monitor leading power factor'
+            ])
+        else:
+            causes.append(f"{severity_text}: Power factor deviation {deviation:.1f}% from normal ({value:.2f})")
+            recommendations.extend([
+                'Monitor power factor trends',
+                'Check system stability',
+                'Review power factor correction settings'
+            ])
+
+    return f"CAUSES:\n{'\n'.join(causes)}\n\nRECOMMENDATIONS:\n{'\n'.join(['• ' + r for r in recommendations])}"
+
+# ---------------------------
+# Main function
+# ---------------------------
+def train_and_detect_anomalies_from_df(df: pd.DataFrame):
     try:
-        # Load and prepare data
-        df = pd.read_csv(csv_path)
-        if 'date' not in df.columns:
-            df['date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        df['date'] = pd.to_datetime(df['date'])
-        
-        # Select features
+        # Ensure timestamp column
+        if 'timestamp' not in df.columns:
+            if 'date' in df.columns:
+                df.rename(columns={'date': 'timestamp'}, inplace=True)
+            else:
+                df['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+        # Features
         features = ['usage_kwh', 'co2_tco2', 'power_factor']
-        X = df[features].copy()
-        
-        # Handle missing or invalid values
         for col in features:
-            X[col] = pd.to_numeric(X[col], errors='coerce')
-            X[col].fillna(X[col].mean(), inplace=True)
-        
-        # Use RobustScaler to handle outliers better
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col].fillna(df[col].mean(), inplace=True)
+
+        # Scale features
         scaler = RobustScaler()
-        X_scaled = scaler.fit_transform(X)
-        
-        # Train multiple models for ensemble approach
-        base_contamination = 0.1
-        models = {
-            'isolation_forest': IsolationForest(
-                n_estimators=200,
-                contamination=base_contamination,
-                random_state=42
-            ),
-            'robust_covariance': EllipticEnvelope(
-                contamination=base_contamination,
-                random_state=42
-            )
-        }
-        
-        # Get predictions from each model
-        predictions = {}
-        for name, model in models.items():
-            predictions[name] = model.fit_predict(X_scaled)
-        
-        # Combine predictions (majority voting)
-        combined_predictions = np.mean([pred for pred in predictions.values()], axis=0)
-        df['Anomaly'] = (combined_predictions < 0).astype(int) * -2 + 1
-        
-        # Calculate feature importance and thresholds
-        feature_scores = calculate_feature_importance(models['isolation_forest'], X_scaled)
-        means = X.mean()
-        stds = X.std()
-        thresholds = {
-            'critical': 3.0,    # Critical anomaly
-            'moderate': 2.0,    # Moderate anomaly
-            'minor': 1.5        # Minor anomaly
-        }
-        
-        # Analyze anomalies
+        X_scaled = scaler.fit_transform(df[features])
+
+        # Models
+        contamination = 0.1
+        iforest = IsolationForest(n_estimators=200, contamination=contamination, random_state=42)
+        ee = EllipticEnvelope(contamination=contamination, random_state=42)
+
+        preds_iforest = iforest.fit_predict(X_scaled)
+        preds_ee = ee.fit_predict(X_scaled)
+
+        # Combine predictions
+        df['Anomaly'] = ((preds_iforest + preds_ee) / 2 < 0).astype(int) * -1
+
+        # Stats for analysis
+        means = df[features].mean()
+        stds = df[features].std()
+
         anomalies = []
-        for idx, row in df[df['Anomaly'] == -1].iterrows():
-            deviations, primary_issue, max_deviation = get_anomaly_details(
-                row, feature_scores, means, stds, 
-                [thresholds['minor']] * len(features)
-            )
-            
-            # Determine severity
-            if max_deviation > thresholds['critical']:
-                severity = 3  # Critical
-            elif max_deviation > thresholds['moderate']:
-                severity = 2  # Moderate
-            else:
-                severity = 1  # Minor
-            
-            # Generate detailed diagnosis
-            if primary_issue == 'usage_kwh':
-                anomaly_name = 'Energy Consumption Anomaly'
-                diagnosis = f"{'High' if deviations[primary_issue]['direction'] == 'high' else 'Low'} energy consumption detected"
-            elif primary_issue == 'co2_tco2':
-                anomaly_name = 'CO2 Emissions Anomaly'
-                diagnosis = f"{'Elevated' if deviations[primary_issue]['direction'] == 'high' else 'Reduced'} CO2 emissions detected"
-            else:
-                anomaly_name = 'Power Factor Anomaly'
-                if row['power_factor'] < 0.85:
-                    diagnosis = "Poor power factor indicating reactive power issues"
-                elif row['power_factor'] > 0.98:
-                    diagnosis = "Power factor over-compensation detected"
+        for _, row in df[df['Anomaly'] == -1].iterrows():
+            analyses = {}
+            for metric in features:
+                mean = means[metric]
+                std = stds[metric]
+                value = row[metric]
+                deviation = ((value - mean) / mean * 100) if mean != 0 else 0
+                z_score = abs((value - mean) / std) if std != 0 else 0
+
+                # Severity
+                if z_score > 3.0:
+                    severity = "critical"
+                elif z_score > 2.0:
+                    severity = "moderate"
+                elif z_score > 1.5:
+                    severity = "minor"
                 else:
-                    diagnosis = f"Abnormal power factor fluctuation"
-            
-            # Add correlation insights
-            if len(deviations) > 1:
-                correlated_issues = [k for k in deviations.keys() if k != primary_issue]
-                if correlated_issues:
-                    diagnosis += f". Also showing abnormal {', '.join(correlated_issues)}"
-            
+                    severity = "normal"
+
+                analyses[metric] = {
+                    'isAnomaly': severity != 'normal',
+                    'severity': severity,
+                    'percentageDeviation': deviation,
+                    'direction': 'high' if value > mean else 'low',
+                    'value': value
+                }
+
+            # Skip if no anomaly
+            if not any(a['isAnomaly'] for a in analyses.values()):
+                continue
+
+            # FMEA Diagnosis
+            diagnosis = generate_fmea_diagnosis(analyses)
+            alert_level = max(
+                (a['severity'] for a in analyses.values() if a['isAnomaly']),
+                key=lambda s: ['minor', 'moderate', 'critical'].index(s)
+            )
+
+            anomaly_types = ', '.join(f"{analyses[m]['severity'].upper()} {m}" for m in analyses if analyses[m]['isAnomaly'])
+
             anomalies.append({
-                'date': row['date'].strftime('%Y-%m-%d %H:%M:%S'),
+                'timestamp': row['timestamp'].isoformat(),
                 'Usage_kWh': float(row['usage_kwh']),
                 'CO2(tCO2)': float(row['co2_tco2']),
                 'Lagging_Current_Power_Factor': float(row['power_factor']),
-                'Anomaly_Label': anomaly_name,
+                'Anomaly_Label': f"Anomaly in: {anomaly_types}",
                 'FMEA_Diagnosis': diagnosis,
-                'Alert_Level': severity
+                'Alert_Level': alert_level
             })
-        
-        return json.dumps(anomalies)
-        
-    except Exception as e:
-        return json.dumps({'error': str(e)})
 
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print(json.dumps({'error': 'No CSV file provided'}))
-    else:
-        csv_path = sys.argv[1]
-        result = train_and_detect_anomalies(csv_path)
-        print(result)
+        return anomalies
+
+    except Exception as e:
+        return [{'error': str(e)}]
