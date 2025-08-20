@@ -5,7 +5,7 @@ import { setSelectedFeatures } from '../store/FileSlice';
 import type { RootState, AppDispatch } from '../store';
 import FeatureSelector from '../components/FeatureSelector';
 import ChartContainer from '../components/ChartContainer';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 
 const generateColors = (count: number) => {
@@ -22,7 +22,6 @@ const generateColors = (count: number) => {
 };
 
 const MultichannelView: React.FC = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const {selectedFile,selectedFeatures} = useSelector((state: RootState) => state.files);
   const [chartData, setChartData] = useState<any>(null);

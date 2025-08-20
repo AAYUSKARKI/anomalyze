@@ -15,13 +15,14 @@ import { setAnomalyData } from "../store/AnomalySlice";
 import ModelSelector from "../components/ModelSelector";
 import { useNavigate } from "react-router-dom";
 import alertSound from '../assets/alerttone.mp3'
-import { exportAnomaliesAsExcel, exportAnomaliesAsPDF } from "../utils/reportExport";
+import { exportAnomaliesAsPDF } from "../utils/reportExport";
 const ModelTraining = () => {
   const navigate = useNavigate();
     const {files} = useSelector((state: RootState) => state.files);
     const {anomalyData} = useSelector((state: RootState) => state.anomaly);
     const { selectedModel } = useSelector((state: RootState) => state.model);
     const { selectedFile} = useSelector((state: RootState) => state.files);
+    const { isSocketConnected} = useSelector((state: RootState) => state.socket);
     const dispatch = useDispatch<AppDispatch>();
 
     const [trainingStatus, setTrainingStatus] = useState<
@@ -190,7 +191,7 @@ return (
       description="Train anomaly detection models on your data"
     >
       <div className="space-y-6">
-        <section className="bg-white shadow rounded-lg p-6">
+        { !isSocketConnected && <section className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Select Training Data</h2>
           {files.length > 0 ? (
             <FileList
@@ -210,7 +211,7 @@ return (
             </div>
           )}
         </section>
-
+}
         <section className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Model Selection</h2>
           <ModelSelector selectedModel={selectedModel} onChange={handleModelSelect} />

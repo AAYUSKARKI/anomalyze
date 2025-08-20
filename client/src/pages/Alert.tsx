@@ -20,10 +20,17 @@ import toast from 'react-hot-toast';
 const columnHelper = createColumnHelper<AnomalyData>();
 
 const Alerts: React.FC = () => {
+  const severityLabels = {
+  Critical: 'critical',
+  Moderate: 'moderate',
+  Minor: 'minor',
+} as const;
+
+type SeverityLevel = typeof severityLabels[keyof typeof severityLabels];
   const [sorting, setSorting] = useState<SortingState>([]);
   const { anomalyData } = useSelector((state: RootState) => state.anomaly);
   const [alerts, setAlerts] = useState<AnomalyData[]>([]);
-  const [severityFilter, setSeverityFilter] = useState<number | null>(null);
+  const [severityFilter, setSeverityFilter] = useState<SeverityLevel | null>(null);
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
@@ -101,17 +108,17 @@ const Alerts: React.FC = () => {
       columnHelper.accessor('Alert_Level', {
         header: 'Severity',
         cell: (info) => {
-          const level = info.getValue();
-          const severity = level === 3 ? 'Critical' : level === 2 ? 'Moderate' : 'Minor';
-          const colors = {
-            Critical: 'bg-red-100 text-red-700',
-            Moderate: 'bg-yellow-100 text-yellow-700',
-            Minor: 'bg-green-100 text-green-700',
+          const level = info.getValue()?.toLowerCase() as SeverityLevel;
+          const severity = level === 'critical' ? 'Critical' : level === 'moderate' ? 'Moderate' : 'Minor';
+          const colors: Record<SeverityLevel, string> = {
+            critical: 'bg-red-100 text-red-700',
+            moderate: 'bg-yellow-100 text-yellow-700',
+            minor: 'bg-green-100 text-green-700',
           };
 
           return (
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${colors[severity]}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${colors[level]}`}
             >
               {severity}
             </span>
@@ -138,10 +145,15 @@ const Alerts: React.FC = () => {
   });
 
   const severityCounts = useMemo(() => {
-    return alerts.reduce((acc: Record<number, number>, alert) => {
-      acc[alert.Alert_Level] = (acc[alert.Alert_Level] || 0) + 1;
+    return alerts.reduce((acc: Record<SeverityLevel, number>, alert) => {
+      const level = alert.Alert_Level?.toLowerCase() as SeverityLevel;
+      acc[level] = (acc[level] || 0) + 1;
       return acc;
-    }, {});
+    }, {
+      critical: 0,
+      moderate: 0,
+      minor: 0
+    });
   }, [alerts]);
   return (
     <PageContainer
@@ -165,22 +177,22 @@ const Alerts: React.FC = () => {
                     All ({alerts.length})
                   </button>
                   <button
-                    onClick={() => setSeverityFilter(3)}
+                    onClick={() => setSeverityFilter('critical')}
                     className="text-red-700 px-4 py-2 text-sm font-medium bg-red-50 rounded-md hover:bg-red-100 transition-colors"
                   >
-                    Critical ({severityCounts[3] || 0})
+                    Critical ({severityCounts.critical})
                   </button>
                   <button
-                    onClick={() => setSeverityFilter(2)}
+                    onClick={() => setSeverityFilter('moderate')}
                     className="text-yellow-700 px-4 py-2 text-sm font-medium bg-yellow-50 rounded-md hover:bg-yellow-100 transition-colors"
                   >
-                    Moderate ({severityCounts[2] || 0})
+                    Moderate ({severityCounts.moderate})
                   </button>
                   <button
-                    onClick={() => setSeverityFilter(1)}
+                    onClick={() => setSeverityFilter('minor')}
                     className="text-green-700 px-4 py-2 text-sm font-medium bg-green-50 rounded-md hover:bg-green-100 transition-colors"
                   >
-                    Minor ({severityCounts[1] || 0})
+                    Minor ({severityCounts.minor})
                   </button>
                 </div>
                 <button

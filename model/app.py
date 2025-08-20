@@ -258,9 +258,10 @@ def generate_future_dates(start_date, days):
     
     for i in range(days):
         current_date += timedelta(days=1)
-        dates.append(current_date.isoformat() + 'Z')
+        dates.append(current_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z')
     
     return dates
+
 
 @app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
@@ -276,28 +277,50 @@ def predict():
         historical_data = data.get('historicalData')
         days = data.get('days')
 
-        if not historical_data or not isinstance(historical_data, list):
-            raise ValueError('Invalid historical data')
+        if not historical_data or not isinstance(historical_data, list) or not historical_data:
+            raise ValueError('Invalid or empty historical data')
         
-        if not days or not isinstance(days, int):
+        if not days or not isinstance(days, int) or days <= 0:
             raise ValueError('Invalid number of days')
 
-        last_date = historical_data[-1]['date']
+        # Validate and convert data
+        required_keys = {'timestamp', 'usage_kwh', 'co2_tco2', 'power_factor'}
+        cleaned_data = []
+        for i, record in enumerate(historical_data):
+            if not all(key in record for key in required_keys):
+                raise ValueError(f"Missing required keys in record {i}: {record}")
+            try:
+                cleaned_record = {
+                    'timestamp': record['timestamp'],
+                    'usage_kwh': float(record['usage_kwh']),
+                    'co2_tco2': float(record['co2_tco2']),
+                    'power_factor': float(record['power_factor'])
+                }
+                cleaned_data.append(cleaned_record)
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"Non-numeric value in record {i}: {record}, error: {str(e)}")
+
+        if not cleaned_data:
+            raise ValueError('No valid records after cleaning')
+
+        last_date = cleaned_data[-1]['timestamp']
         future_dates = generate_future_dates(last_date, days)
 
+        # Generate predictions
         usage_predictions = predict_next_value(
-            [d['usage_kwh'] for d in historical_data], days
+            [d['usage_kwh'] for d in cleaned_data], days
         )
         co2_predictions = predict_next_value(
-            [d['co2_tco2'] for d in historical_data], days
+            [d['co2_tco2'] for d in cleaned_data], days
         )
         pf_predictions = predict_next_value(
-            [d['power_factor'] for d in historical_data], days
+            [d['power_factor'] for d in cleaned_data], days
         )
 
+        # Format predictions as a list of dictionaries
         predictions = [
             {
-                'date': date,
+                'timestamp': date,
                 'usage_kwh': max(0, usage_pred),
                 'co2_tco2': max(0, co2_pred),
                 'power_factor': min(1, max(0, pf_pred))
@@ -305,7 +328,17 @@ def predict():
             for date, usage_pred, co2_pred, pf_pred in zip(future_dates, usage_predictions, co2_predictions, pf_predictions)
         ]
 
-        return jsonify(predictions), 200, {
+        # Combine historical and predicted data for anomaly detection
+        combined_data = cleaned_data + predictions
+
+        # Detect anomalies in the predicted data
+        predicted_anomalies = detect_anomalies(combined_data)[-len(predictions):]  # Only take anomalies for predicted data
+
+        # Return both predictions and anomalies
+        return jsonify({
+            'predictions': predictions,
+            'predicted_anomalies': predicted_anomalies
+        }), 200, {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -322,6 +355,5 @@ def predict():
             'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
             'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
         }
-
 if __name__ == '__main__':
     app.run(debug=True)

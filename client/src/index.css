@@ -1,1 +1,72 @@
+/* src/index.css */
 @import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary-50: #e6eeff; /* Very Light Blue */
+  --color-primary-100: #ccdcff; /* Light Cornflower Blue */
+  --color-primary-200: #99b9ff; /* Cornflower Blue */
+  --color-primary-300: #6695ff; /* Bright Blue / Dodger Blue */
+  --color-primary-400: #3372ff; /* Royal Blue */
+  --color-primary-500: #0f52ba; /* Sapphire Blue */
+  --color-primary-600: #0c42a6; /* Dark Sapphire Blue */
+  --color-primary-700: #093179; /* Midnight Blue */
+  --color-primary-800: #06214d; /* Navy Blue */
+  --color-primary-900: #031026; /* Deep Navy / Almost Black */
+
+  --color-secondary-50: #e6fafa; /* Very Light Cyan */
+  --color-secondary-100: #ccf5f5; /* Light Cyan */
+  --color-secondary-200: #99ebeb; /* Cyan */
+  --color-secondary-300: #66e0e0; /* Bright Cyan */
+  --color-secondary-400: #33d6d6; /* Turquoise */
+  --color-secondary-500: #00a6a6; /* Teal */
+  --color-secondary-600: #008585; /* Dark Teal */
+  --color-secondary-700: #006363; /* Deep Teal */
+  --color-secondary-800: #004242; /* Very Dark Teal */
+  --color-secondary-900: #002121; /* Almost Black Teal */
+
+  --color-accent-50: #fff7e6; /* Very Light Amber */
+  --color-accent-100: #ffeecb; /* Light Amber */
+  --color-accent-200: #ffdd99; /* Amber */
+  --color-accent-300: #ffcc66; /* Light Orange */
+  --color-accent-400: #ffbb33; /* Orange */
+  --color-accent-500: #ff8c00; /* Dark Orange */
+  --color-accent-600: #cc7000; /* Deep Orange */
+  --color-accent-700: #995400; /* Burnt Orange */
+  --color-accent-800: #663800; /* Dark Burnt Orange */
+  --color-accent-900: #331c00; /* Very Dark Brown */
+
+  --color-success-50: #f0fdf4; /* Very Light Green */
+  --color-success-100: #dcfce7; /* Light Green */
+  --color-success-500: #10b981; /* Emerald Green */
+  --color-success-700: #15803d; /* Dark Green */
+
+  --color-warning-50: #fffbeb; /* Very Light Yellow */
+  --color-warning-100: #fef3c7; /* Light Yellow */
+  --color-warning-500: #f59e0b; /* Amber */
+  --color-warning-700: #b45309; /* Dark Amber */
+
+  --color-error-50: #fef2f2; /* Very Light Red */
+  --color-error-100: #fee2e2; /* Light Red */
+  --color-error-500: #ef4444; /* Red */
+  --color-error-700: #b91c1c; /* Dark Red */
+
+  /* Animations */
+  --animation-fade-in: fadeIn 0.5s ease-in-out;
+  --animation-slide-in: slideIn 0.3s ease-out;
+  --animation-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  /* Keyframes */
+  --keyframes-fadeIn: {
+    '0%': { opacity: 0 },
+    '100%': { opacity: 1 }
+  };
+  --keyframes-slideIn: {
+    '0%': { transform: translateY(10px), opacity: 0 },
+    '100%': { transform: translateY(0), opacity: 1 }
+  };
+  --keyframes-pulse: {
+    '0%, 100%': { opacity: 1 },
+    '50%': { opacity: 0.5 }
+  };
+}

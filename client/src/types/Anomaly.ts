@@ -15,7 +15,7 @@ export interface AnomalyData {
   Lagging_Current_Power_Factor: number;
   Anomaly_Label: string;
   FMEA_Diagnosis: string;
-  Alert_Level: number;
+  Alert_Level: string;
 }
 
 export interface AnomalyResponse {
